@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BREAKOUT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --grid: rgba(255,255,255,0.03);
+      --neon-cyan: #a149ff;
+      --neon-pink: #ff00dd;
+      --neon-yellow: #00eaff;
+      --neon-green: #1414ff;
+      --panel: rgba(255,255,255,0.04);
+      --border: rgba(0,245,255,0.2);
+      --text: #e0e0e0;
+      --mono: 'Share Tech Mono', monospace;
+      --display: 'Bebas Neue', sans-serif;
+    }
+ 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+ 
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.12) 2px,
+        rgba(0,0,0,0.12) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+ 
+    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    .wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+ 
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+ 
+    h1 {
+      font-family: var(--display);
+      font-size: 64px;
+      letter-spacing: 8px;
+      color: var(--neon-cyan);
+      text-shadow:
+        0 0 10px var(--neon-cyan),
+        0 0 40px var(--neon-cyan),
+        0 0 80px rgba(0,245,255,0.4);
+      line-height: 1;
+    }
+ 
+    .hud {
+      display: flex;
+      gap: 40px;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+ 
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+ 
+    .hud-label {
+      color: rgba(255,255,255,0.35);
+      font-size: 10px;
+    }
+ 
+    .hud-value {
+      color: var(--neon-yellow);
+      font-size: 22px;
+      font-family: var(--display);
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px var(--neon-yellow), 0 0 30px rgba(183, 0, 255, 0.88);
+    }
+ 
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(0,245,255,0.05),
+        0 0 40px rgba(0,245,255,0.08),
+        inset 0 0 60px rgba(0,0,0,0.6);
+    }
+ 
+    canvas {
+      display: block;
+      background: rgba(0,0,0,0.7);
+    }
+ 
+    /* Overlay screens */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(2px);
+    }
+ 
+    .overlay.hidden { display: none; }
+ 
+    .overlay-title {
+      font-family: var(--display);
+      font-size: 52px;
+      letter-spacing: 6px;
+      text-align: center;
+    }
+ 
+    .overlay-title.cyan {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px var(--neon-cyan), 0 0 60px rgba(0,245,255,0.5);
+    }
+ 
+    .overlay-title.pink {
+      color: var(--neon-pink);
+      text-shadow: 0 0 20px var(--neon-pink), 0 0 60px rgba(255,0,110,0.5);
+    }
+ 
+    .overlay-title.green {
+      color: var(--neon-green);
+      text-shadow: 0 0 20px var(--neon-green), 0 0 60px rgb(53, 2, 255);
+    }
+ 
+    .overlay-sub {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+    }
+ 
+    .btn {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 12px 36px;
+      background: transparent;
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px rgba(0,245,255,0.2), inset 0 0 10px rgba(0,245,255,0.05);
+    }
+ 
+    .btn:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 20px rgba(0,245,255,0.5), inset 0 0 20px rgba(0,245,255,0.1);
+      text-shadow: 0 0 8px var(--neon-cyan);
+    }
+ 
+    footer {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.15);
+      text-transform: uppercase;
+    }
+ 
+    .lives-pips {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+ 
+    .pip {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-pink);
+      box-shadow: 0 0 6px var(--neon-pink);
+    }
+ 
+    .pip.empty {
+      background: rgba(255,0,110,0.15);
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>BREAKOUT</h1>
+  </header>
+ 
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Score</span>
+      <span class="hud-value" id="score-display">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Level</span>
+      <span class="hud-value" id="level-display">1</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">Lives</span>
+      <div class="lives-pips" id="lives-display">
+        <span class="pip"></span>
+        <span class="pip"></span>
+        <span class="pip"></span>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="canvas-wrap">
+    <canvas id="canvas" width="600" height="460"></canvas>
+ 
+    <div class="overlay" id="overlay-start">
+      <div class="overlay-title cyan">BREAKOUT</div>
+      <div class="overlay-sub">Use ← → or mouse to move the paddle<br/>Don't let the ball fall!</div>
+      <button class="btn" id="btn-start">INSERT COIN</button>
+    </div>
+ 
+    <div class="overlay hidden" id="overlay-gameover">
+      <div class="overlay-title pink">GAME OVER</div>
+      <div class="overlay-sub" id="final-score-text"></div>
+      <button class="btn" id="btn-restart">PLAY AGAIN</button>
+    </div>
+ 
+    <div class="overlay hidden" id="overlay-win">
+      <div class="overlay-title green">YOU WIN</div>
+      <div class="overlay-sub" id="win-score-text"></div>
+      <button class="btn" id="btn-nextlevel">NEXT LEVEL</button>
+    </div>
+  </div>
+ 
+  <footer>← → ARROW KEYS OR MOUSE &nbsp;·&nbsp; SPACE TO PAUSE</footer>
+</div>
+ 
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+ 
+  // HUD refs
+  const scoreEl = document.getElementById('score-display');
+  const levelEl = document.getElementById('level-display');
+  const livesEl = document.getElementById('lives-display');
+ 
+  // Overlays
+  const overlayStart = document.getElementById('overlay-start');
+  const overlayGameover = document.getElementById('overlay-gameover');
+  const overlayWin = document.getElementById('overlay-win');
+ 
+  document.getElementById('btn-start').onclick = startGame;
+  document.getElementById('btn-restart').onclick = () => { score = 0; lives = 3; level = 1; startGame(); };
+  document.getElementById('btn-nextlevel').onclick = () => { level++; startGame(); };
+ 
+  // Game state
+  let score = 0, lives = 3, level = 1;
+  let gameRunning = false, paused = false;
+  let animId;
+ 
+  // Paddle
+  const paddle = { w: 90, h: 10, x: 0, y: H - 40, speed: 7 };
+ 
+  // Ball
+  const ball = { r: 7, x: 0, y: 0, vx: 0, vy: 0 };
+ 
+  // Bricks
+  const ROWS = 5, COLS = 10;
+  const BRICK_W = 52, BRICK_H = 16, BRICK_GAP = 4;
+  const BRICK_OFFSET_X = (W - (COLS * (BRICK_W + BRICK_GAP) - BRICK_GAP)) / 2;
+  const BRICK_OFFSET_Y = 50;
+  let bricks = [];
+ 
+  const BRICK_COLORS = [
+    '#ff006e', // row 0 - pink
+    '#ff6b35', // row 1 - orange
+    '#ffea00', // row 2 - yellow
+    '#39ff14', // row 3 - green
+    '#00f5ff', // row 4 - cyan
+  ];
+ 
+  const BRICK_POINTS = [50, 40, 30, 20, 10];
+ 
+  function initBricks() {
+    bricks = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        bricks.push({
+          x: BRICK_OFFSET_X + c * (BRICK_W + BRICK_GAP),
+          y: BRICK_OFFSET_Y + r * (BRICK_H + BRICK_GAP),
+          w: BRICK_W, h: BRICK_H,
+          alive: true,
+          color: BRICK_COLORS[r],
+          points: BRICK_POINTS[r],
+          row: r
+        });
+      }
+    }
+  }
+ 
+  function resetBall() {
+    ball.x = paddle.x + paddle.w / 2;
+    ball.y = paddle.y - ball.r - 2;
+    const angle = (Math.random() * 60 + 60) * Math.PI / 180; // 60-120°
+    const speed = 4 + level * 0.4;
+    ball.vx = Math.cos(angle) * speed * (Math.random() < 0.5 ? 1 : -1);
+    ball.vy = -Math.abs(Math.sin(angle) * speed);
+  }
+ 
+  function resetPaddle() {
+    paddle.x = W / 2 - paddle.w / 2;
+    paddle.y = H - 40;
+  }
+ 
+  function startGame() {
+    overlayStart.classList.add('hidden');
+    overlayGameover.classList.add('hidden');
+    overlayWin.classList.add('hidden');
+    gameRunning = true;
+    paused = false;
+    initBricks();
+    resetPaddle();
+    resetBall();
+    updateHUD();
+    if (animId) cancelAnimationFrame(animId);
+    gameLoop();
+  }
+ 
+  // Input
+  const keys = {};
+  document.addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if (e.key === ' ') { e.preventDefault(); if (gameRunning) paused = !paused; }
+    if (['ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  });
+  document.addEventListener('keyup', e => { keys[e.key] = false; });
+ 
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    paddle.x = mx - paddle.w / 2;
+    clampPaddle();
+  });
+ 
+  function clampPaddle() {
+    paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
+  }
+ 
+  // Flash effect for brick hits
+  let flashFrames = 0;
+ 
+  function update() {
+    // Paddle movement via keys
+    if (keys['ArrowLeft']) { paddle.x -= paddle.speed; clampPaddle(); }
+    if (keys['ArrowRight']) { paddle.x += paddle.speed; clampPaddle(); }
+ 
+    // Ball movement
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+ 
+    // Wall collisions
+    if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx = Math.abs(ball.vx); }
+    if (ball.x + ball.r > W) { ball.x = W - ball.r; ball.vx = -Math.abs(ball.vx); }
+    if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy = Math.abs(ball.vy); }
+ 
+    // Paddle collision
+    if (
+      ball.vy > 0 &&
+      ball.y + ball.r >= paddle.y &&
+      ball.y + ball.r <= paddle.y + paddle.h + Math.abs(ball.vy) &&
+      ball.x >= paddle.x - ball.r &&
+      ball.x <= paddle.x + paddle.w + ball.r
+    ) {
+      ball.vy = -Math.abs(ball.vy);
+      // Angle based on hit position
+      const hitPos = (ball.x - paddle.x) / paddle.w; // 0–1
+      const angle = (hitPos - 0.5) * 2; // -1 to 1
+      ball.vx = angle * (4 + level * 0.4) * 1.5;
+      ball.y = paddle.y - ball.r;
+    }
+ 
+    // Ball lost
+    if (ball.y - ball.r > H) {
+      lives--;
+      updateHUD();
+      if (lives <= 0) {
+        gameOver();
+        return;
+      }
+      resetBall();
+    }
+ 
+    // Brick collisions
+    let bricksLeft = 0;
+    for (const b of bricks) {
+      if (!b.alive) continue;
+      bricksLeft++;
+      if (
+        ball.x + ball.r > b.x &&
+        ball.x - ball.r < b.x + b.w &&
+        ball.y + ball.r > b.y &&
+        ball.y - ball.r < b.y + b.h
+      ) {
+        b.alive = false;
+        bricksLeft--;
+        score += b.points;
+        flashFrames = 3;
+        updateHUD();
+ 
+        // Determine bounce direction
+        const overlapLeft = (ball.x + ball.r) - b.x;
+        const overlapRight = (b.x + b.w) - (ball.x - ball.r);
+        const overlapTop = (ball.y + ball.r) - b.y;
+        const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
+        const minH = Math.min(overlapLeft, overlapRight);
+        const minV = Math.min(overlapTop, overlapBottom);
+        if (minH < minV) ball.vx *= -1;
+        else ball.vy *= -1;
+        break;
+      }
+    }
+ 
+    if (bricksLeft === 0) {
+      winLevel();
+    }
+  }
+ 
+  function gameOver() {
+    gameRunning = false;
+    document.getElementById('final-score-text').textContent = `Final Score: ${score}`;
+    overlayGameover.classList.remove('hidden');
+  }
+ 
+  function winLevel() {
+    gameRunning = false;
+    document.getElementById('win-score-text').textContent = `Score: ${score}  ·  Level ${level} Complete`;
+    overlayWin.classList.remove('hidden');
+  }
+ 
+  function updateHUD() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    // Lives pips
+    livesEl.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const pip = document.createElement('span');
+      pip.className = 'pip' + (i >= lives ? ' empty' : '');
+      livesEl.appendChild(pip);
+    }
+  }
+ 
+  // Drawing
+  function drawBackground() {
+    ctx.clearRect(0, 0, W, H);
+  }
+ 
+  function drawBricks() {
+    for (const b of bricks) {
+      if (!b.alive) continue;
+      // Glow
+      ctx.save();
+      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 8;
+      // Brick fill
+      ctx.fillStyle = hexToRgba(b.color, 0.15);
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      // Brick border
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+      ctx.restore();
+      // Shine
+      const grad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+      grad.addColorStop(0, hexToRgba(b.color, 0.25));
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h / 2);
+    }
+  }
+ 
+  function drawPaddle() {
+    ctx.save();
+    ctx.shadowColor = '#00f5ff';
+    ctx.shadowBlur = 15;
+    const grad = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y);
+    grad.addColorStop(0, '#00f5ff');
+    grad.addColorStop(0.5, '#ffffff');
+    grad.addColorStop(1, '#00f5ff');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 5);
+    ctx.fill();
+    ctx.restore();
+  }
+ 
+  function drawBall() {
+    ctx.save();
+    ctx.shadowColor = '#a149ff';
+    ctx.shadowBlur = 20;
+    // Trail
+    const trailGrad = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r * 2.5);
+    trailGrad.addColorStop(0, 'rgba(161,73,255,0.3)');
+    trailGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = trailGrad;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Ball
+    ctx.fillStyle = '#a149ff';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+ 
+  function drawFlash() {
+    if (flashFrames > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${flashFrames * 0.04})`;
+      ctx.fillRect(0, 0, W, H);
+      flashFrames--;
+    }
+  }
+ 
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+ 
+  function gameLoop() {
+    drawBackground();
+    drawBricks();
+    drawPaddle();
+    drawBall();
+    drawFlash();
+    if (gameRunning && !paused) update();
+    if (paused && gameRunning) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#00f5ff';
+      ctx.font = `bold 14px 'Share Tech Mono'`;
+      ctx.textAlign = 'center';
+      ctx.fillText('— PAUSED —', W/2, H/2);
+    }
+    animId = requestAnimationFrame(gameLoop);
+  }
+ 
+  // Initial draw
+  initBricks();
+  resetPaddle();
+  ball.x = W/2; ball.y = H/2;
+  drawBackground(); drawBricks(); drawPaddle(); drawBall();
+</script>
+</body>
+</html>

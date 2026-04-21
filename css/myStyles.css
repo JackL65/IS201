@@ -1,0 +1,120 @@
+body {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 15px;
+        color: #555555;
+        background-color: rgb(238, 241, 242);
+    }
+li {
+        font-size: 14px;
+        font-style: italic;
+        font-weight: normal;
+        text-decoration: none;
+    }
+a {
+        color: rgb(98, 182, 237);
+        text-decoration: none;
+    }
+
+h1 {
+        color: rgb(34, 82, 149);
+}
+a:hover{
+        text-decoration: underline;
+        /* font-weight: bold;
+        font-size: 18px; */
+    }
+a:visited{
+        color:rgb(34, 82, 149);
+    }
+.resumelistheading {
+    font-weight: bold;
+    font-style: normal;
+    }   
+/* .underline {text-decoration: underline;} */
+.justify {text-align: justify;}
+.bold {font-weight: bold;}
+.homebg {
+        background-image: url('../Images/Jesus_Christ_Fish_Symbol.jpg');
+        background-position: top right;
+    }
+.box1 {
+        border-width: 1px;
+        border-style: solid;
+        border-color: grey;
+
+        /* border: 1px solid red; */
+    }
+.box2 {
+        padding: 5px;
+    }
+.box3 {
+        margin: 50px;
+    }
+
+
+
+/* copied from layout styles */
+
+.common {
+    /* background-color: #cccccc; */
+    border: 2px solid transparent;
+    position: absolute;
+}
+
+.header {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    height: 100px;
+    z-index: 2;
+    border-bottom: solid 1px #555555;
+}
+
+.title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.leftmenu {
+    top: 114px;
+    left: 5px;
+    width: 100px;
+    bottom: auto;
+    z-index: 1;
+    border-right: solid 1px #555555;
+}
+
+.mainbody {
+    top: 114px;
+    left: 114px;
+    right: 114px;
+    bottom: 39px;
+    padding-right: 5px;
+}
+
+.rightmenu {
+    top: 114px;
+    right: 5px;
+    width: 200px;
+    bottom: auto;
+    border-left: solid 1px #555555;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.footer {
+    bottom: 5px;
+    height: 25px;
+    left: 5px;
+    right: 5px;
+    font-size: 8px;
+    color: #999999;
+    text-align: center;
+    padding-top: 15px;
+    position: fixed;
+}
+
+.subheader {
+    float: right;
+}
