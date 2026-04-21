@@ -84,10 +84,12 @@
       letter-spacing: 8px;
       color: var(--neon-cyan);
       text-shadow:
-        0 0 10px var(--neon-cyan),
+        0 0 2px var(--neon-cyan),
         0 0 40px var(--neon-cyan),
         0 0 80px rgba(0,245,255,0.4);
       line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      filter: blur(0);
     }
  
     .hud {
@@ -534,18 +536,18 @@
  
   function drawBall() {
     ctx.save();
-    ctx.shadowColor = '#a149ff';
+    ctx.shadowColor = '#ffea00';
     ctx.shadowBlur = 20;
     // Trail
     const trailGrad = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r * 2.5);
-    trailGrad.addColorStop(0, 'rgba(161,73,255,0.3)');
+    trailGrad.addColorStop(0, 'rgba(255,234,0,0.3)');
     trailGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = trailGrad;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r * 2.5, 0, Math.PI * 2);
     ctx.fill();
     // Ball
-    ctx.fillStyle = '#a149ff';
+    ctx.fillStyle = '#ffea00';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
     ctx.fill();
